@@ -22,7 +22,7 @@ def train(model, train_loader, epoch, optimizer, criterion, clip):
     epoch_loss = 0
     cnt = 0
 
-    loop = tqdm(enumerate(train_loader), total=num_train_iteration_per_epoch)
+    loop = tqdm(enumerate(train_loader.get_iterator()), total=num_train_iteration_per_epoch)
     # for _, (x, y) in enumerate(train_loader):
     for _, (x, y) in loop:
         # x/y shape (50, 12, 207, 2)
@@ -48,7 +48,7 @@ def evaluate(model, val_loader, epoch, criterion):
     model.eval()
     epoch_loss = 0
     cnt = 0
-    loop = tqdm(enumerate(val_loader), total=num_val_iteration_per_epoch)
+    loop = tqdm(enumerate(val_loader.get_iterator()), total=num_val_iteration_per_epoch)
     with torch.no_grad():
         for i, (x, y) in loop:
             cnt += 1
@@ -74,7 +74,7 @@ def test(model, test_loader, scaler):
     predictions = []
 
     with torch.no_grad():
-        for i, (x, y) in enumerate(test_loader):
+        for i, (x, y) in enumerate(test_loader.get_iterator()):
             x = torch.FloatTensor(x).cuda()
             y = torch.FloatTensor(y).cuda()
             outputs = model(x, y, 0)  # (seq_length+1, batch_size, num_nodes*output_dim)  (13, 50, 207*1)
@@ -144,9 +144,9 @@ if __name__ == '__main__':
 
     scaler = data['scaler']
 
-    train_data_loader = data['train_loader'].get_iterator()
-    val_data_loader = data['val_loader'].get_iterator()
-    test_data_loader = data['test_loader'].get_iterator()
+    train_data_loader = data['train_loader']
+    val_data_loader = data['val_loader']
+    test_data_loader = data['test_loader']
 
     # Initialize model
     model = DCGRUModel(batch_size=batch_size, enc_input_dim=input_dim, dec_input_dim=output_dim,
