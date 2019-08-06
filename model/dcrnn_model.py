@@ -7,9 +7,10 @@ import torch.nn as nn
 # from lib.metrics import masked_mae_loss
 from model.dcrnn_cell import DCGRUCell
 import random
+from base import BaseModel
 
 
-class DCRNNEncoder(nn.Module):
+class DCRNNEncoder(BaseModel):
     def __init__(self, input_dim, adj_mat, max_diffusion_step, hid_dim, num_nodes, num_rnn_layers):
         super(DCRNNEncoder, self).__init__()
         self.hid_dim = hid_dim
@@ -57,7 +58,7 @@ class DCRNNEncoder(nn.Module):
         return torch.stack(init_states, dim=0)
 
 
-class DCGRUDecoder(nn.Module):
+class DCGRUDecoder(BaseModel):
     def __init__(self, input_dim, adj_mat, max_diffusion_step, num_nodes,
                  hid_dim, output_dim, num_rnn_layers):
         super(DCGRUDecoder, self).__init__()
@@ -152,10 +153,10 @@ class DCGRUDecoder(nn.Module):
         # return outputs
 
 
-class DCGRUModel(nn.Module):
-    def __init__(self, batch_size, enc_input_dim, dec_input_dim, adj_mat, max_diffusion_step, num_nodes,
-                 num_rnn_layers, rnn_units, seq_len, input_dim, output_dim):
-        super(DCGRUModel, self).__init__()
+class DCRNNModel(BaseModel):
+    def __init__(self, adj_mat, batch_size, enc_input_dim, dec_input_dim, max_diffusion_step, num_nodes,
+                 num_rnn_layers, rnn_units, seq_len, output_dim):
+        super(DCRNNModel, self).__init__()
         # scaler for data normalization
         # self._scaler = scaler
         self._batch_size = batch_size
@@ -169,7 +170,6 @@ class DCGRUModel(nn.Module):
         self._rnn_units = rnn_units  # should be 64
         self._seq_len = seq_len  # should be 12
         # use_curriculum_learning = bool(model_kwargs.get('use_curriculum_learning', False))  # should be true
-        self._input_dim = input_dim  # should be 2
         self._output_dim = output_dim  # should be 1
 
         # specify a GO symbol as the start of the decoder
@@ -204,3 +204,15 @@ class DCGRUModel(nn.Module):
 
         outputs = self.decoder(target, context, teacher_forcing_ratio=0.5)
         return outputs  # (seq_length+1, batch_size, num_nodes*output_dim)  (13, 50, 207*1)
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @property
+    def output_dim(self):
+        return self._output_dim
+
+    @property
+    def num_nodes(self):
+        return self._num_nodes

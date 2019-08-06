@@ -1,0 +1,68 @@
+{
+    "name": "METR-LA_DCRNN",
+    "n_gpu": 1,
+
+    "arch": {
+        "type": "DCRNNModel",
+        "args": {
+			"batch_size": 50,
+			"enc_input_dim": 2,
+			"dec_input_dim": 1,
+			"max_diffusion_step": 2,
+			"num_nodes": 207,
+			"num_rnn_layers": 2,
+			"rnn_units": 64,
+			"seq_len": 12,
+			"output_dim": 1
+		}
+    },
+    "dataloader": {
+        "type": "Data",
+        "args":{
+			"train_batch_size": 64,
+            "data_dir": "data/METR-LA/",
+            "shuffle": true,
+            "validation_split": 0.1,
+			"val_batch_size": 64,
+			"test_batch_size": 64,
+            "num_workers": 2
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 0.01,
+            "weight_decay": 0,
+			"eps": 1.0e-3,
+            "amsgrad": true
+        }
+    },
+    "loss": {
+		"type": "masked_mae_loss",
+		"args":{
+			"null_val": 0.0
+		}
+	},
+    "metrics": [
+        "masked_mae_np", "masked_mape_np", "masked_rmse_np"
+    ],
+    "lr_scheduler": {
+        "type": "StepLR",
+        "args": {
+            "step_size": 50,
+            "gamma": 0.1
+        }
+    },
+    "trainer": {
+        "epochs": 100,
+
+        "save_dir": "saved/",
+        "save_period": 1,
+        "verbosity": 2,
+        
+        "monitor": "min val_loss",
+        "early_stop": 10,
+
+        "tensorboard": true
+    }
+}

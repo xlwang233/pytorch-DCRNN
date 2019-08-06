@@ -7,10 +7,10 @@ import numpy as np
 from lib import utils
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from base import BaseModel
 
 
-class DiffusionGraphConv(nn.Module):
+class DiffusionGraphConv(BaseModel):
     def __init__(self, supports, input_dim, hid_dim, num_nodes, max_diffusion_step, output_dim, bias_start=0.0):
         super(DiffusionGraphConv, self).__init__()
         num_matrices = max_diffusion_step + 1
@@ -76,7 +76,7 @@ class DiffusionGraphConv(nn.Module):
         return torch.reshape(x, [batch_size, self._num_nodes * output_size])
 
 
-class DCGRUCell(nn.Module):
+class DCGRUCell(BaseModel):
     """
     Graph Convolution Gated Recurrent Unit Cell.
     """
@@ -179,136 +179,9 @@ class DCGRUCell(nn.Module):
     def _gconv(self, inputs, state, output_size, bias_start=0.0):
         pass
 
-    # def _dconv(self, inputs, state, output_size, bias_start=0.0):
-    #     """
-    #     Diffusion Graph convolution with graph matrix
-    #     :param inputs:
-    #     :param state:
-    #     :param output_size:
-    #     :param bias_start:
-    #     :return:
-    #     """
-    #     # Reshape input and state to (batch_size, num_nodes, input_dim/state_dim)
-    #     batch_size = inputs.shape[0]
-    #     inputs = torch.reshape(inputs, (batch_size, self._num_nodes, -1))
-    #     state = torch.reshape(state, (batch_size, self._num_nodes, -1))
-    #     inputs_and_state = torch.cat([inputs, state], dim=2)
-    #     input_size = inputs_and_state.shape[2]
-    #     # dtype = inputs.dtype
-    #
-    #     x = inputs_and_state
-    #     x0 = torch.transpose(x, dim0=0, dim1=1)
-    #     x0 = torch.transpose(x0, dim0=1, dim1=2)  # (num_nodes, total_arg_size, batch_size)
-    #     x0 = torch.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
-    #     x = torch.unsqueeze(x0, dim=0)
-    #
-    #     if self._max_diffusion_step == 0:
-    #         pass
-    #     else:
-    #         x1 = torch.sparse.mm(self._supports, x0)
-    #         x = self._concat(x, x1)
-    #         for k in range(2, self._max_diffusion_step + 1):
-    #             x2 = 2 * torch.sparse.mm(self._supports, x1) - x0
-    #             x = self._concat(x, x2)
-    #             x1, x0 = x2, x1
-    #
-    #     num_matrices = self._max_diffusion_step + 1  # Adds for x itself.
-    #     x = torch.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
-    #     x = torch.transpose(x, dim0=0, dim1=3)  # (batch_size, num_nodes, input_size, order)
-    #     x = torch.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
-    #
-    #     if self.weight is None:
-    #         self.reset_weight_parameters(dim1=input_size * num_matrices, dim2=output_size)
-    #     if self.biases is None:
-    #         self.reset_bias_parameters(dim2=output_size, bias_start=0.0)
-    #     # self.weights = torch.nn.parameter(torch.FloatTensor(size=(input_size * num_matrices, output_size)))
-    #     # nn.init.xavier_normal_(self.weights, gain=1.414)
-    #     x = torch.matmul(x, self.weight)  # (batch_size * self._num_nodes, output_size)
-    #     # self.biases = nn.Parameter(torch.FloatTensor(size=(output_size,)))
-    #     # nn.init.constant_(self.biases, val=bias_start)
-    #     x = torch.add(x, self.biases)
-    #     # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
-    #     return torch.reshape(x, [batch_size, self._num_nodes * output_size])
-
     def _fc(self, inputs, state, output_size, bias_start=0.0):
         pass
 
     def init_hidden(self, batch_size):
         # state: (B, num_nodes * num_units)
         return torch.zeros(batch_size, self._num_nodes * self._num_units)
-
-
-# class GCNSeq2Seq(nn.Module):
-#     def __init__(self, g_mat, num_nodes, period_step, gcinfeat=2, gcoutfeat=16,
-#                  rnn_hid=64, out_dim=1):
-#         """
-#         :param g: the graph for convolution
-#         :param period_step: the number of past days (periodic data)
-#         :param in_feat: the input dim for gcn, default to 2: (speed, time_in_day)
-#         :param gcnoutdim: the output dim after gcn, default to 64: the info-fused vector
-#         :param rnn_in: the input dim for seq2seq, equals to gcnoutdim
-#         :param rnn_hid: the hidden dim for seq2seq, defaults to 64
-#         :param rnn_out: the output dim for seq2seq, defaults to 1: (speed,)
-#         """
-#         self.g_mat = g_mat  # the graph matrix, which should be a scipy sparse coo matrix
-#         self.g_spmat = self._build_sparse_matrix()
-#         self.period_step = period_step
-#         self.num_nodes = num_nodes
-#         self.gcoutfeat = gcoutfeat
-#         self.rnn_hid = rnn_hid
-#         self.out_dim = out_dim
-#         # self.gconv_weight = nn.Parameter(torch.Tensor(in_feats, out_feats))
-#
-#         self.gc = GraphConvolutionLayer(g_spmat=self.g_spmat, in_feat=gcinfeat, out_feat=gcoutfeat)
-#         self.Encoder = Encoder(input_dim=num_nodes*gcoutfeat, hid_dim=rnn_hid)
-#         self.Decoder = Decoder(input_dim=num_nodes*gcoutfeat, hid_dim=rnn_hid, output_dim=num_nodes)
-#         self.Seq2Seq = Seq2Seq(encoder=self.Encoder, decoder=self.Decoder)
-#         # 不考虑period信息
-#         # self.RNN_period = nn.GRU(input_size=gcnoutdim, hidden_size=rnn_hid, num_layers=1,
-#         #                          bias=True)
-#         self.fc = nn.Linear(in_features=rnn_hid*2, out_features=out_dim)
-#
-#     def forward(self, src, trg):
-#         # x size: (50, 12, 207, 2)
-#         # Spatial part
-#         # both source and target need to be convolved
-#         B, T, N, _ = src.shape
-#         src = torch.transpose(src, dim0=0, dim1=1)  # to (time_step, batch, num_nodes, dim)
-#         src = torch.transpose(src, dim0=1, dim1=2)  # to (time_step, num_nodes, batch, dim)
-#         trg = torch.transpose(trg, dim0=0, dim1=1)  # to (time_step, batch, num_nodes, dim)
-#         trg = torch.transpose(trg, dim0=1, dim1=2)  # to (time_step, num_nodes, batch, dim)
-#
-#         # Spatial Part
-#         # go through time
-#         source = []
-#         for t in range(T):
-#             x_t = self._gconv(src[t, :, :], output_size=self.gcnoutdim)  # should be (num_nodes, batch, output_size)
-#             source.append(x_t)
-#         source = torch.stack(source)  # (t, num_nodes, batch_size, output_size)
-#         target = []
-#         for t in range(T):
-#             x_t = self._gconv(trg[t, :, :], output_size=self.gcnoutdim)  # should be (num_nodes, batch, output_size)
-#             target.append(x_t)
-#         target = torch.stack(target)  # (t, num_nodes, batch_size, output_size=64)
-#
-#         # Temporal Part
-#         # reshape inputs to fit for seq2seq
-#         source = torch.transpose(source, dim0=1, dim1=2)  # to (t, batch, num_nodes, output_size)
-#         target = torch.transpose(target, dim0=1, dim1=2)  # same as aboove
-#         source = torch.reshape(source, (T, B, -1))  # num_nodes*gcout_size is the feature dimension
-#         target = torch.reshape(target, (T, B, -1))
-#         outputs = self.Seq2Seq(source, target)  # (t, batch, output_dim=207)
-#
-#         return outputs
-#
-#     @staticmethod
-#     def _build_sparse_matrix(self):
-#         """
-#         build pytorch sparse tensor from scipy sparse matrix
-#         reference: https://stackoverflow.com/questions/50665141
-#         :return:
-#         """
-#         i = torch.LongTensor(np.vstack((self.g_mat.row, self.g_mat.col)).astype(int))
-#         v = torch.FloatTensor(self.g_mat.data)
-#         shape = self.g_mat.shape
-#         return torch.sparse.FloatTensor(i, v, torch.Size(shape))
