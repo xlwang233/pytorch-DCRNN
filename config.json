@@ -47,22 +47,21 @@
         "masked_mae_np", "masked_mape_np", "masked_rmse_np"
     ],
     "lr_scheduler": {
-        "type": "StepLR",
+        "type": "MultiStepLR",
         "args": {
-            "step_size": 50,
+			"milestones": [20, 30, 40, 50],
             "gamma": 0.1
         }
     },
     "trainer": {
         "epochs": 100,
-
+		"cl_decay_steps": 2000,
         "save_dir": "saved/",
         "save_period": 1,
         "verbosity": 2,
-        
+        "max_grad_norm": 5,
         "monitor": "min val_loss",
         "early_stop": 10,
-
         "tensorboard": true
     }
 }

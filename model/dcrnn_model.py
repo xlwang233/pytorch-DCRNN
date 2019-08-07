@@ -128,30 +128,6 @@ class DCGRUDecoder(BaseModel):
 
         return outputs
 
-        # first input to the decoder is the GO Symbol
-        # current_inputs = inputs[0] # (1, 50, 207*1)
-        # output_hidden = []  # the output hidden states, shape (num_layers, batch, outdim)
-        # for i_layer in range(self._num_rnn_layers-1):
-        #     hidden_state = initial_hidden_state[i_layer]
-        #     output_inner = []
-        #     current_inputs = inputs[0]
-        #     for t in range(0, seq_length-1):
-        #         output, hidden_state = self.decoding_cells[i_layer](current_inputs, hidden_state)  # (50, 207*64)
-        #         # output and hidden_state should be the same
-        #
-        #         output_inner.append(hidden_state)
-        #         teacher_force = random.random() < teacher_forcing_ratio
-        #         current_inputs = (inputs[t] if teacher_force else hidden_state)
-        #     output_hidden.append(hidden_state)
-        #     inputs = torch.stack(output_inner, dim=0)  # seq_len, B, ...
-        #
-        # # last layer. still need to go through all time steps
-        # hidden_state = initial_hidden_state[self._num_rnn_layers-1]
-        # for t in range(seq_length):
-        #     outputs, hidden_state = self.decoding_cells[self._num_rnn_layers-1](current_inputs[t, ...], hidden_state)
-        # # output shape should be (12, 50, 207*1) (seq, batch, num_nodes * outdim)
-        # return outputs
-
 
 class DCRNNModel(BaseModel):
     def __init__(self, adj_mat, batch_size, enc_input_dim, dec_input_dim, max_diffusion_step, num_nodes,
@@ -161,9 +137,6 @@ class DCRNNModel(BaseModel):
         # self._scaler = scaler
         self._batch_size = batch_size
 
-        # cl_decay_steps = int(model_kwargs.get('cl_decay_steps', 1000))
-        # filter_type = model_kwargs.get('filter_type', 'laplacian')
-        # self._horizon = horizon
         # max_grad_norm parameter is actually defined in data_kwargs
         self._num_nodes = num_nodes  # should be 207
         self._num_rnn_layers = num_rnn_layers  # should be 2
@@ -187,11 +160,8 @@ class DCRNNModel(BaseModel):
         assert self.encoder.hid_dim == self.decoder.hid_dim, \
             "Hidden dimensions of encoder and decoder must be equal!"
 
-    def forward(self, source, target, teacher_forcing_ratio=0.5):
+    def forward(self, source, target, teacher_forcing_ratio):
         # the size of source/target would be (50, 12, 207, 2)
-        seq_length = source.shape[1]
-        batch_size = source.shape[0]
-
         source = torch.transpose(source, dim0=0, dim1=1)
         target = torch.transpose(target[..., :self._output_dim], dim0=0, dim1=1)
         target = torch.cat([self.GO_Symbol, target], dim=0)
@@ -202,7 +172,7 @@ class DCRNNModel(BaseModel):
         # last hidden state of the encoder is the context
         context, _ = self.encoder(source, init_hidden_state)  # (num_layers, batch, outdim)
 
-        outputs = self.decoder(target, context, teacher_forcing_ratio=0.5)
+        outputs = self.decoder(target, context, teacher_forcing_ratio=teacher_forcing_ratio)
         return outputs  # (seq_length+1, batch_size, num_nodes*output_dim)  (13, 50, 207*1)
 
     @property

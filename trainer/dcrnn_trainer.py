@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from base import BaseTrainer
+import math
 # from lib.utils import inf_loop
 
 
@@ -15,11 +16,14 @@ class DCRNNTrainer(BaseTrainer):
         self.data_loader = data_loader
         self.len_epoch = len_epoch
         self.val_len_epoch = val_len_epoch
+        self.cl_decay_steps = config["trainer"]["cl_decay_steps"]
 
+        self.max_grad_norm = config["trainer"]["max_grad_norm"]
         self.valid_data_loader = valid_data_loader
         self.do_validation = self.valid_data_loader is not None
         self.lr_scheduler = lr_scheduler
-        self.log_step = int(np.sqrt(data_loader.batch_size))  # sqrt(128)  sqrt(64)
+        self.log_step = int(20)
+        # self.log_step = int(np.sqrt(data_loader.batch_size))  # sqrt(128)  sqrt(64)
 
     def _eval_metrics(self, output, target):
         acc_metrics = np.zeros(len(self.metrics))
@@ -55,13 +59,19 @@ class DCRNNTrainer(BaseTrainer):
             data, target = data.to(self.device), target.to(self.device)
 
             self.optimizer.zero_grad()
-            output = self.model(data, target)
+
+            # compute sampling ratio, which gradually decay to 0 during training
+            global_step = (epoch - 1) * self.len_epoch + batch_idx
+            teacher_forcing_ratio = self._compute_sampling_threshold(global_step, self.cl_decay_steps)
+
+            output = self.model(data, target, teacher_forcing_ratio)
             output = torch.transpose(output[1:].view(12, self.model.batch_size, self.model.num_nodes,
                                                      self.model.output_dim), 0, 1)  # back to (50, 12, 207, 1)
 
             loss = self.loss(output.cpu(), label)  # loss is self-defined, need cpu input
             loss.backward()
-            # TODO: add grad norm clipping
+            # add max grad clipping
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
             self.optimizer.step()
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
@@ -141,3 +151,13 @@ class DCRNNTrainer(BaseTrainer):
             current = batch_idx
             total = self.len_epoch
         return base.format(current, total, 100.0 * current / total)
+
+    @staticmethod
+    def _compute_sampling_threshold(global_step, k):
+        """
+        Computes the sampling probability for scheduled sampling using inverse sigmoid.
+        :param global_step:
+        :param k:
+        :return:
+        """
+        return k / (k + math.exp(global_step / k))

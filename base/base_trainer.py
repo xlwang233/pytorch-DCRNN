@@ -19,12 +19,12 @@ class BaseTrainer:
             self.model = torch.nn.DataParallel(model, device_ids=device_ids)
 
         self.loss = loss
-        self.metrics = metrics
+        self.metrics = metrics  # a list of metric functions defined in metric.py
         self.optimizer = optimizer
 
         cfg_trainer = config['trainer']
         self.epochs = cfg_trainer['epochs']
-        self.save_period = cfg_trainer['save_period']
+        self.save_period = cfg_trainer['save_period']  # should be 1
         self.monitor = cfg_trainer.get('monitor', 'off')
 
         # configuration to monitor model performance and save best
@@ -64,7 +64,7 @@ class BaseTrainer:
         for epoch in range(self.start_epoch, self.epochs + 1):
             result = self._train_epoch(epoch)
 
-            # save logged informations into log dict
+            # save logged information into log dict
             log = {'epoch': epoch}
             for key, value in result.items():
                 if key == 'metrics':
@@ -74,7 +74,14 @@ class BaseTrainer:
                 else:
                     log[key] = value
 
-            # print logged informations to the screen
+            # There is a chance that the training loss will explode, the temporary workaround
+            # is to restart from the last saved model before the explosion, or to decrease
+            # the learning rate earlier in the learning rate schedule.
+            if log['loss'] > 1e5:
+                self.logger.warning('Gradient explosion detected. Ending...')
+                break
+
+            # print logged information to the screen
             for key, value in log.items():
                 self.logger.info('    {:15s}: {}'.format(str(key), value))
 

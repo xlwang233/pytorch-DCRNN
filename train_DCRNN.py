@@ -6,11 +6,20 @@ from lib import utils
 from lib import metrics
 from lib.utils import load_graph_data, count_parameters
 from lib.metrics import masked_mae_loss
-from model.dcrnn_model import DCGRUModel
+from model.dcrnn_model import DCRNNModel
+# from model.dcrnn_supervisor import DCRNNSupervisor
 
 import time
 import math
 from tqdm import tqdm
+import yaml
+import argparse
+import collections
+import model.loss as module_loss
+import model.metric as module_metric
+import model.model as module_arch
+from parse_config import ConfigParser
+
 
 
 def train(model, train_loader, epoch, optimizer, criterion, clip):
@@ -66,6 +75,7 @@ def evaluate(model, val_loader, epoch, criterion):
 
     return epoch_loss / cnt
 
+
 def test(model, test_loader, scaler):
     model.eval()
     y_preds = torch.FloatTensor([])
@@ -105,8 +115,8 @@ def test(model, test_loader, scaler):
 if __name__ == '__main__':
     # Parameter setting
     # Data parameters
-    batch_size = 200
-    graph_pkl_filename = 'data/sensor_graph/adj_mx.pkl'
+    batch_size = 50
+    graph_pkl_filename = 'data/sensor_graph/adj_mx_unix.pkl'
     # Model parameters
     horizon = 12
     input_dim = 2
@@ -149,10 +159,10 @@ if __name__ == '__main__':
     test_data_loader = data['test_loader']
 
     # Initialize model
-    model = DCGRUModel(batch_size=batch_size, enc_input_dim=input_dim, dec_input_dim=output_dim,
+    model = DCRNNModel(batch_size=batch_size, enc_input_dim=input_dim, dec_input_dim=output_dim,
                        adj_mat=adj_mat, max_diffusion_step=max_diffusion_step,
                        num_nodes=num_nodes, num_rnn_layers=num_rnn_layers,
-                       rnn_units=rnn_units, seq_len=seq_len, input_dim=input_dim, output_dim=output_dim)
+                       rnn_units=rnn_units, seq_len=seq_len, output_dim=output_dim)
     # Count number of trainable parameters
     print(f'The model has {count_parameters(model):,} trainable parameters')
     # A GPU should be available
@@ -189,10 +199,4 @@ if __name__ == '__main__':
     res = test(model, test_data_loader, scaler=scaler)
     # serialize test data
     np.savez_compressed('data/results/dcrnn_predictions.npz', **res)
-    print('Predictions saved as {}.'.format('data/results/dcrnn_predictions.npz'))
-
-
-
-
-
-
+    print('Predictions saved as {}.'.format('saved/results/dcrnn_predictions.npz'))
