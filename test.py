@@ -76,7 +76,7 @@ def main(config):
     }
 
     # serialize test data
-    np.savez_compressed('data/results/dcrnn_predictions.npz', **outputs)
+    np.savez_compressed('saved/results/dcrnn_predictions.npz', **outputs)
     print('Predictions saved as {}.'.format('saved/results/dcrnn_predictions.npz'))
 
 
