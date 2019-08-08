@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from base import BaseTrainer
 import math
-# from lib.utils import inf_loop
+import time
 
 
 class DCRNNTrainer(BaseTrainer):
@@ -49,7 +49,7 @@ class DCRNNTrainer(BaseTrainer):
             The metrics in log must have the key 'metrics'.
         """
         self.model.train()
-
+        start_time = time.time()
         total_loss = 0
         total_metrics = np.zeros(len(self.metrics))
         for batch_idx, (data, target) in enumerate(self.data_loader.get_iterator()):
@@ -90,7 +90,7 @@ class DCRNNTrainer(BaseTrainer):
 
         log = {
             'loss': total_loss / self.len_epoch,
-            'metrics': (total_metrics / self.len_epoch).tolist()
+            'metrics': (total_metrics / self.len_epoch).tolist(),
         }
 
         if self.do_validation:
@@ -99,7 +99,7 @@ class DCRNNTrainer(BaseTrainer):
 
         if self.lr_scheduler is not None:
             self.lr_scheduler.step()
-
+        log.update({'Time': "{:.4f}s".format(time.time()-start_time)})
         return log
 
     def _valid_epoch(self, epoch):
