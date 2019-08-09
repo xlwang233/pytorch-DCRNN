@@ -122,8 +122,8 @@ class DCRNNTrainer(BaseTrainer):
                 data, target = data.to(self.device), target.to(self.device)
 
                 output = self.model(data, target, 0)
-                output = torch.transpose(output[1:].view(12, self.model.batch_size, self.model.num_nodes,
-                                                         self.model.output_dim), 0, 1)  # back to (50, 12, 207, 1)
+                output = torch.transpose(output.view(12, self.model.batch_size, self.model.num_nodes,
+                                                     self.model.output_dim), 0, 1)  # back to (50, 12, 207, 1)
 
                 loss = self.loss(output.cpu(), label)
 

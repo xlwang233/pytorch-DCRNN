@@ -173,7 +173,8 @@ class DCRNNModel(BaseModel):
         context, _ = self.encoder(source, init_hidden_state)  # (num_layers, batch, outdim)
 
         outputs = self.decoder(target, context, teacher_forcing_ratio=teacher_forcing_ratio)
-        return outputs  # (seq_length+1, batch_size, num_nodes*output_dim)  (13, 50, 207*1)
+        # the elements of the first time step of the outputs are all zeros.
+        return outputs[1:, :, :]  # (seq_length, batch_size, num_nodes*output_dim)  (12, 50, 207*1)
 
     @property
     def batch_size(self):
