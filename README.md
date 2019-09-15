@@ -36,4 +36,4 @@ There is a chance that the training loss will explode, the temporary workaround 
 Log information will be saved at `saved/log/.../info.log` 
 The best validated model will be saved at `saved/model/.../model_best.pth`
 
-The evaluation results acquired is recorded in test_results.log
+The best results that I obtained so far is shown in `test_results.log`
