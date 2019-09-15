@@ -65,8 +65,8 @@ class DCRNNTrainer(BaseTrainer):
             teacher_forcing_ratio = self._compute_sampling_threshold(global_step, self.cl_decay_steps)
 
             output = self.model(data, target, teacher_forcing_ratio)
-            output = torch.transpose(output[1:].view(12, self.model.batch_size, self.model.num_nodes,
-                                                     self.model.output_dim), 0, 1)  # back to (50, 12, 207, 1)
+            output = torch.transpose(output.view(12, self.model.batch_size, self.model.num_nodes,
+                                                 self.model.output_dim), 0, 1)  # back to (50, 12, 207, 1)
 
             loss = self.loss(output.cpu(), label)  # loss is self-defined, need cpu input
             loss.backward()
@@ -99,7 +99,7 @@ class DCRNNTrainer(BaseTrainer):
 
         if self.lr_scheduler is not None:
             self.lr_scheduler.step()
-        log.update({'Time': "{:.4f}s".format(time.time()-start_time)})
+        log.update({'Time': "{:.4f}s".format(time.time() - start_time)})
         return log
 
     def _valid_epoch(self, epoch):
@@ -122,8 +122,8 @@ class DCRNNTrainer(BaseTrainer):
                 data, target = data.to(self.device), target.to(self.device)
 
                 output = self.model(data, target, 0)
-                output = torch.transpose(output.view(12, self.model.batch_size, self.model.num_nodes,
-                                                     self.model.output_dim), 0, 1)  # back to (50, 12, 207, 1)
+                output = torch.transpose(output[1:].view(12, self.model.batch_size, self.model.num_nodes,
+                                                         self.model.output_dim), 0, 1)  # back to (50, 12, 207, 1)
 
                 loss = self.loss(output.cpu(), label)
 

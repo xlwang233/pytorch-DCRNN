@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import torch
 import torch.nn as nn
-# from lib.metrics import masked_mae_loss
 from model.dcrnn_cell import DCGRUCell
 import random
 from base import BaseModel

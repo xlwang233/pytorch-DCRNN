@@ -44,6 +44,7 @@ def main(config):
     y_truths = data['y_test']  # (6850, 12, 207, 2)
     y_truths = scaler.inverse_transform(y_truths)
     predictions = []
+    groundtruth = list()
 
     with torch.no_grad():
         for i, (x, y) in tqdm(enumerate(test_data_loader.get_iterator()), total=num_test_iteration):
@@ -51,14 +52,15 @@ def main(config):
             y = torch.FloatTensor(y).cuda()
             outputs = model(x, y, 0)  # (seq_length, batch_size, num_nodes*output_dim)  (12, 50, 207*1)
             y_preds = torch.cat([y_preds, outputs], dim=1)
-    y_preds = torch.transpose(y_preds, 0, 1)  # (6850, 12, 207)
+    y_preds = torch.transpose(y_preds, 0, 1)
     y_preds = y_preds.detach().numpy()  # cast to numpy array
     print("--------test results--------")
     for horizon_i in range(y_truths.shape[1]):
-        y_truth = np.squeeze(y_truths[:, horizon_i, :, 0])  # should be (6850, 207)
+        y_truth = np.squeeze(y_truths[:, horizon_i, :, 0])
 
-        y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :])  # should be (6850, 207)
+        y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
         predictions.append(y_pred)
+        groundtruth.append(y_truth)
 
         mae = metrics.masked_mae_np(y_pred, y_truth, null_val=0)
         mape = metrics.masked_mape_np(y_pred, y_truth, null_val=0)
@@ -72,7 +74,7 @@ def main(config):
         logger.info(log)
     outputs = {
         'predictions': predictions,
-        'groundtruth': y_truths
+        'groundtruth': groundtruth
     }
 
     # serialize test data
