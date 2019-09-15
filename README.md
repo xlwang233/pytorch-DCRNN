@@ -25,7 +25,7 @@ For data preparation, check the original repo:[liyaguang/DCRNN](https://github.c
 For now, training is only supported for METR-LA dataset due to data availability.
 ```bash
 # METR-LA
-python train.py 
+python train.py --config config.json
 ```
 Each epoch takes about 5-6min(~ 340 seconds) on a single RTX 2080 Ti for METR-LA. 
 
@@ -33,6 +33,7 @@ There is a chance that the training loss will explode, the temporary workaround 
 
 
 ## Log and Model Savings
-Log information will be saved at `saved/log/.../info.log` and the best validated model will be saved to `saved/model/.../model_best.pth`
+Log information will be saved at `saved/log/.../info.log` 
+The best validated model will be saved at `saved/model/.../model_best.pth`
 
 The evaluation results acquired is recorded in test_results.log
