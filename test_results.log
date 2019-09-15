@@ -1,0 +1,41 @@
+2019-08-09 11:33:09,047 - test - INFO - DCRNNModel(
+  (encoder): DCRNNEncoder(
+    (encoding_cells): ModuleList(
+      (0): DCGRUCell(
+        (dconv_gate): DiffusionGraphConv()
+        (dconv_candidate): DiffusionGraphConv()
+      )
+      (1): DCGRUCell(
+        (dconv_gate): DiffusionGraphConv()
+        (dconv_candidate): DiffusionGraphConv()
+      )
+    )
+  )
+  (decoder): DCGRUDecoder(
+    (decoding_cells): ModuleList(
+      (0): DCGRUCell(
+        (dconv_gate): DiffusionGraphConv()
+        (dconv_candidate): DiffusionGraphConv()
+      )
+      (1): DCGRUCell(
+        (dconv_gate): DiffusionGraphConv()
+        (dconv_candidate): DiffusionGraphConv()
+        (project): Linear(in_features=64, out_features=1, bias=True)
+      )
+    )
+  )
+)
+Trainable parameters: 223745
+2019-08-09 11:33:09,049 - test - INFO - Loading checkpoint: saved\models\METR-LA_DCRNN\0808_171059\model_best.pth ...
+2019-08-09 11:33:52,056 - test - INFO - {'Horizon': 1, 'MAE': 2.240175, 'MAPE': 0.053496942067004755, 'RMSE': 3.8558154}
+2019-08-09 11:33:52,176 - test - INFO - {'Horizon': 2, 'MAE': 2.5170922, 'MAPE': 0.06285123715256466, 'RMSE': 4.659614}
+2019-08-09 11:33:52,301 - test - INFO - {'Horizon': 3, 'MAE': 2.7119272, 'MAPE': 0.0700113867840114, 'RMSE': 5.218819}
+2019-08-09 11:33:52,433 - test - INFO - {'Horizon': 4, 'MAE': 2.86949, 'MAPE': 0.07608669806056427, 'RMSE': 5.6576147}
+2019-08-09 11:33:52,573 - test - INFO - {'Horizon': 5, 'MAE': 3.0031407, 'MAPE': 0.08142096081793074, 'RMSE': 6.02133}
+2019-08-09 11:33:52,703 - test - INFO - {'Horizon': 6, 'MAE': 3.1200106, 'MAPE': 0.08610088652296136, 'RMSE': 6.333747}
+2019-08-09 11:33:52,830 - test - INFO - {'Horizon': 7, 'MAE': 3.2238362, 'MAPE': 0.09018912937739718, 'RMSE': 6.603145}
+2019-08-09 11:33:52,961 - test - INFO - {'Horizon': 8, 'MAE': 3.316205, 'MAPE': 0.09393475574741272, 'RMSE': 6.8358727}
+2019-08-09 11:33:53,085 - test - INFO - {'Horizon': 9, 'MAE': 3.3994894, 'MAPE': 0.09732060208548036, 'RMSE': 7.041826}
+2019-08-09 11:33:53,217 - test - INFO - {'Horizon': 10, 'MAE': 3.476583, 'MAPE': 0.10048071279406817, 'RMSE': 7.230802}
+2019-08-09 11:33:53,344 - test - INFO - {'Horizon': 11, 'MAE': 3.5491557, 'MAPE': 0.10347420720712062, 'RMSE': 7.404658}
+2019-08-09 11:33:53,480 - test - INFO - {'Horizon': 12, 'MAE': 3.6205695, 'MAPE': 0.1064306471071038, 'RMSE': 7.5694327}
