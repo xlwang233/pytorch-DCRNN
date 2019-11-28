@@ -61,9 +61,10 @@ class BaseTrainer:
         """
         Full training logic
         """
+        training_time = 0
         for epoch in range(self.start_epoch, self.epochs + 1):
-            result = self._train_epoch(epoch)
-
+            result, train_epoch_time = self._train_epoch(epoch)
+            training_time += train_epoch_time
             # save logged information into log dict
             log = {'epoch': epoch}
             for key, value in result.items():
@@ -113,6 +114,8 @@ class BaseTrainer:
 
             if epoch % self.save_period == 0:
                 self._save_checkpoint(epoch, save_best=best)
+        average_trianing_time = training_time / self.epochs
+        self.logger.info("Average training time: {:.4f}s".format(average_trianing_time))
 
     def _prepare_device(self, n_gpu_use):
         """

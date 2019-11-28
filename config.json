@@ -5,7 +5,7 @@
     "arch": {
         "type": "DCRNNModel",
         "args": {
-			"batch_size": 50,
+			"batch_size": 64,
 			"enc_input_dim": 2,
 			"dec_input_dim": 1,
 			"max_diffusion_step": 2,
@@ -54,7 +54,7 @@
         }
     },
     "trainer": {
-        "epochs": 100,
+        "epochs": 1,
 		"cl_decay_steps": 2000,
         "save_dir": "saved/",
         "save_period": 1,

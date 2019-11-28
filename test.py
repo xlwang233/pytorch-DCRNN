@@ -7,6 +7,7 @@ from parse_config import ConfigParser
 from lib import utils
 from tqdm import tqdm
 import math
+import time
 
 
 def main(config):
@@ -38,20 +39,21 @@ def main(config):
     model = model.to(device)
     model.eval()
 
-    total_loss = 0.0
-
     y_preds = torch.FloatTensor([])
     y_truths = data['y_test']  # (6850, 12, 207, 2)
     y_truths = scaler.inverse_transform(y_truths)
     predictions = []
     groundtruth = list()
 
+    start_time = time.time()
     with torch.no_grad():
         for i, (x, y) in tqdm(enumerate(test_data_loader.get_iterator()), total=num_test_iteration):
             x = torch.FloatTensor(x).cuda()
             y = torch.FloatTensor(y).cuda()
             outputs = model(x, y, 0)  # (seq_length, batch_size, num_nodes*output_dim)  (12, 50, 207*1)
             y_preds = torch.cat([y_preds, outputs], dim=1)
+    inference_time = time.time() - start_time
+    logger.info("Inference time: {:.4f} s".format(inference_time))
     y_preds = torch.transpose(y_preds, 0, 1)
     y_preds = y_preds.detach().numpy()  # cast to numpy array
     print("--------test results--------")
@@ -62,9 +64,9 @@ def main(config):
         predictions.append(y_pred)
         groundtruth.append(y_truth)
 
-        mae = metrics.masked_mae_np(y_pred, y_truth, null_val=0)
-        mape = metrics.masked_mape_np(y_pred, y_truth, null_val=0)
-        rmse = metrics.masked_rmse_np(y_pred, y_truth, null_val=0)
+        mae = metrics.masked_mae_np(y_pred[:y_truth.shape[0]], y_truth, null_val=0)
+        mape = metrics.masked_mape_np(y_pred[:y_truth.shape[0]], y_truth, null_val=0)
+        rmse = metrics.masked_rmse_np(y_pred[:y_truth.shape[0]], y_truth, null_val=0)
         print(
             "Horizon {:02d}, MAE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
                 horizon_i + 1, mae, mape, rmse

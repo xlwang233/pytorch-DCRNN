@@ -73,6 +73,7 @@ class DCRNNTrainer(BaseTrainer):
             # add max grad clipping
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
             self.optimizer.step()
+            training_time = time.time() - start_time
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.writer.add_scalar('loss', loss.item())
@@ -99,8 +100,8 @@ class DCRNNTrainer(BaseTrainer):
 
         if self.lr_scheduler is not None:
             self.lr_scheduler.step()
-        log.update({'Time': "{:.4f}s".format(time.time() - start_time)})
-        return log
+        log.update({'Time': "{:.4f}s".format(training_time)})
+        return log, training_time
 
     def _valid_epoch(self, epoch):
         """
@@ -122,8 +123,8 @@ class DCRNNTrainer(BaseTrainer):
                 data, target = data.to(self.device), target.to(self.device)
 
                 output = self.model(data, target, 0)
-                output = torch.transpose(output[1:].view(12, self.model.batch_size, self.model.num_nodes,
-                                                         self.model.output_dim), 0, 1)  # back to (50, 12, 207, 1)
+                output = torch.transpose(output.view(12, self.model.batch_size, self.model.num_nodes,
+                                                     self.model.output_dim), 0, 1)  # back to (50, 12, 207, 1)
 
                 loss = self.loss(output.cpu(), label)
 
