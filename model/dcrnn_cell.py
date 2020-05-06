@@ -13,12 +13,12 @@ from base import BaseModel
 class DiffusionGraphConv(BaseModel):
     def __init__(self, supports, input_dim, hid_dim, num_nodes, max_diffusion_step, output_dim, bias_start=0.0):
         super(DiffusionGraphConv, self).__init__()
-        num_matrices = max_diffusion_step + 1
+        self.num_matrices = len(supports) * max_diffusion_step + 1  # Don't forget to add for x itself.
         input_size = input_dim + hid_dim
         self._num_nodes = num_nodes
         self._max_diffusion_step = max_diffusion_step
         self._supports = supports
-        self.weight = nn.Parameter(torch.FloatTensor(size=(input_size*num_matrices, output_dim)))
+        self.weight = nn.Parameter(torch.FloatTensor(size=(input_size*self.num_matrices, output_dim)))
         self.biases = nn.Parameter(torch.FloatTensor(size=(output_dim,)))
         nn.init.xavier_normal_(self.weight.data, gain=1.414)
         nn.init.constant_(self.biases.data, val=bias_start)
@@ -54,17 +54,17 @@ class DiffusionGraphConv(BaseModel):
         if self._max_diffusion_step == 0:
             pass
         else:
-            x1 = torch.sparse.mm(self._supports, x0)
-            x = self._concat(x, x1)
-            for k in range(2, self._max_diffusion_step + 1):
-                x2 = 2 * torch.sparse.mm(self._supports, x1) - x0
-                x = self._concat(x, x2)
-                x1, x0 = x2, x1
+            for support in self._supports:
+                x1 = torch.sparse.mm(support, x0)
+                x = self._concat(x, x1)
+                for k in range(2, self._max_diffusion_step + 1):
+                    x2 = 2 * torch.sparse.mm(support, x1) - x0
+                    x = self._concat(x, x2)
+                    x1, x0 = x2, x1
 
-        num_matrices = self._max_diffusion_step + 1  # Adds for x itself.
-        x = torch.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
+        x = torch.reshape(x, shape=[self.num_matrices, self._num_nodes, input_size, batch_size])
         x = torch.transpose(x, dim0=0, dim1=3)  # (batch_size, num_nodes, input_size, order)
-        x = torch.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
+        x = torch.reshape(x, shape=[batch_size * self._num_nodes, input_size * self.num_matrices])
 
         x = torch.matmul(x, self.weight)  # (batch_size * self._num_nodes, output_size)
         x = torch.add(x, self.biases)
@@ -77,7 +77,7 @@ class DCGRUCell(BaseModel):
     Graph Convolution Gated Recurrent Unit Cell.
     """
     def __init__(self, input_dim, num_units, adj_mat, max_diffusion_step, num_nodes,
-                 num_proj=None, activation=torch.tanh, use_gc_for_ru=True):
+                 num_proj=None, activation=torch.tanh, use_gc_for_ru=True, filter_type='laplacian'):
         """
         :param num_units: the hidden dim of rnn
         :param adj_mat: the (weighted) adjacency matrix of the graph, in numpy ndarray form
@@ -94,13 +94,22 @@ class DCGRUCell(BaseModel):
         self._max_diffusion_step = max_diffusion_step
         self._num_proj = num_proj
         self._use_gc_for_ru = use_gc_for_ru
-        supports = utils.calculate_scaled_laplacian(adj_mat, lambda_max=None)  # scipy coo matrix
-        self._supports = self._build_sparse_matrix(supports).cuda()  # to pytorch sparse tensor
-        # self.register_parameter('weight', None)
-        # self.register_parameter('biases', None)
-        # temp_inputs = torch.FloatTensor(torch.rand((batch_size, num_nodes * input_dim)))
-        # temp_state = torch.FloatTensor(torch.rand((batch_size, num_nodes * num_units)))
-        # self.forward(temp_inputs, temp_state)
+        self._supports = []
+        supports = []
+        if filter_type == "laplacian":
+            supports.append(utils.calculate_scaled_laplacian(adj_mat, lambda_max=None))
+        elif filter_type == "random_walk":
+            supports.append(utils.calculate_random_walk_matrix(adj_mat).T)
+        elif filter_type == "dual_random_walk":
+            supports.append(utils.calculate_random_walk_matrix(adj_mat))
+            supports.append(utils.calculate_random_walk_matrix(adj_mat.T))
+        else:
+            supports.append(utils.calculate_scaled_laplacian(adj_mat))
+        for support in supports:
+            self._supports.append(self._build_sparse_matrix(support).cuda())  # to PyTorch sparse tensor
+        # supports = utils.calculate_scaled_laplacian(adj_mat, lambda_max=None)  # scipy coo matrix
+        # self._supports = self._build_sparse_matrix(supports).cuda()  # to pytorch sparse tensor
+
         self.dconv_gate = DiffusionGraphConv(supports=self._supports, input_dim=input_dim,
                                              hid_dim=num_units, num_nodes=num_nodes,
                                              max_diffusion_step=max_diffusion_step,
